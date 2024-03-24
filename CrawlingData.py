@@ -33,7 +33,7 @@ class CrawlingData:
             df = pd.DataFrame(cities, columns=['cityName'])
             # LINK FOR EACH CITY
             df['cityLink'] = [elem.get_attribute('href') for elem in elems]
-            df.to_csv('citiesData.csv', index=False, encoding='utf-8')
+            df.to_csv('citiesData.csv', index=False, encoding='utf-8-sig')
             return df
 
 
@@ -49,7 +49,7 @@ class CrawlingData:
                 time.sleep(5)
                 elems = driver.find_elements(By.CSS_SELECTOR, '#neighbor-container [href]')
                 section = [elem.text.split('\n')[0] for elem in elems]
-                sectionLink = [getsectionLink(elem.get_attribute('href')) for elem in elems]
+                sectionLink = [elem.get_attribute('href') for elem in elems]
                 data = {
                     'sectionName': section,
                     'cityName': city,
@@ -58,7 +58,7 @@ class CrawlingData:
                 df_new = pd.DataFrame(data)
                 df = pd.concat([df, df_new], ignore_index=True)
             df.drop_duplicates(inplace=True)
-            df.to_csv('sectionData.csv', index=False, encoding='utf-8')
+            df.to_csv('sectionData.csv', index=False, encoding='utf-8-sig')
             return df
 
     # def hotelData(self):
