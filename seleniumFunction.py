@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import WebDriverException, NoSuchElementException
 
 import numpy as np
 import pandas as pd
@@ -15,7 +16,7 @@ chrome_options.add_argument('--no-sandbox')  # Required when running as root use
 
 
 def scrollPage(driver: webdriver):
-    scroll_step = 50
+    scroll_step = 200
 
     scroll_position = 0
 
@@ -37,15 +38,18 @@ def scrollPage(driver: webdriver):
 
 def getsectionLink(link):
     driver = webdriver.Chrome()
-    driver.get(link)
-
-    backdrop = driver.find_element(By.CSS_SELECTOR, ".SearchboxBackdrop")
-    # Execute JavaScript to remove the element from the DOM
-    driver.execute_script("arguments[0].parentNode.removeChild(arguments[0]);", backdrop)
-
-    time.sleep(5)
-    button = driver.find_element(By.XPATH, '//*[@id="contentReact"]/article/div[1]/div/div[2]/div[3]/button/div')
-    button.click();
+    try:
+        driver.get(link)
+        backdrop = driver.find_element(By.CSS_SELECTOR, ".SearchboxBackdrop")
+        # Execute JavaScript to remove the element from the DOM
+        driver.execute_script("arguments[0].parentNode.removeChild(arguments[0]);", backdrop)
+        time.sleep(5)
+        button = driver.find_element(By.XPATH, '//*[@id="contentReact"]/article/div[1]/div/div[2]/div[3]/button/div')
+        button.click();
+    except NoSuchElementException as e:
+        return 0
+    except WebDriverException as e:
+        return 1
     time.sleep(5)
     current_url = driver.current_url
     return current_url

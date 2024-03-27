@@ -15,7 +15,7 @@ class CrawlingData:
     def __init__(self):
         self.citiesData = self.citiesData()
         self.sectionData = self.sectionData()
-        # self.section2Data = self.section2Data()
+        self.edited_sectionData = self.edited_sectionData()
 
 
     def citiesData(self):
@@ -61,11 +61,21 @@ class CrawlingData:
             df.to_csv('sectionData.csv', index=False, encoding='utf-8-sig')
             return df
 
-    # def hotelData(self):
-    #     df = pd.DataFrame()
-    #     for sectionLink in self.sectionData.sectionLink:
-    #         df_new = gethotelId(sectionLink)
-    #         df = pd.concat([df, df_new], ignore_index=True)
+    def edited_sectionData(self):
+        try:
+            sample_df = pd.read_csv('edited_sectionData.csv')
+        except FileNotFoundError:
+            sample_df = self.sectionData
+            sample_df['edited_sectionLink'] = ''
+            sample_df.to_csv('edited_sectionData.csv', index=False, encoding='utf-8-sig')
+
+        for _ in range(2):
+            for sectionLink in sample_df.sectionLink:
+                index_to_add_column = sample_df.index[sample_df['sectionLink'] == sectionLink][0]
+                if sample_df['edited_sectionLink'][index_to_add_column] in ['0', '1', '']:
+                    sample_df.loc[index_to_add_column, 'edited_sectionLink'] = getsectionLink(sectionLink)
+                    sample_df.to_csv('sectionData1.csv', index=False, encoding='utf-8-sig')
+        return sample_df
 
 
 
