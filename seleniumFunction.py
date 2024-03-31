@@ -9,14 +9,17 @@ import numpy as np
 import pandas as pd
 import time
 
-# Set Chrome options for running in headless mode
+# Set Chrome options:
 chrome_options = Options()
-chrome_options.add_argument('--headless')
-chrome_options.add_argument('--no-sandbox')  # Required when running as root user. Otherwise, you would get no sandbox errors.
-
+# chrome_options.add_argument('--headless')
+chrome_options.add_argument('--no-sandbox') 
+chrome_options.add_argument("--incognito")
+chrome_options.add_argument("--disable-application-cache")
+chrome_options.add_argument("--disable-cache")
+chrome_options.add_argument("--disk-cache-size=0")
 
 def scrollPage(driver: webdriver):
-    scroll_step = 200
+    scroll_step = 100
 
     scroll_position = 0
 
@@ -36,9 +39,11 @@ def scrollPage(driver: webdriver):
     end_position = driver.execute_script("return document.body.scrollHeight") - 800
     driver.execute_script("window.scrollTo(0, {});".format(end_position))
 
+
+
 def getsectionLink(link):
     driver = webdriver.Chrome()
-    try:
+    try: 
         driver.get(link)
         backdrop = driver.find_element(By.CSS_SELECTOR, ".SearchboxBackdrop")
         # Execute JavaScript to remove the element from the DOM
@@ -55,33 +60,19 @@ def getsectionLink(link):
     return current_url
 
 
+def appendCSV(new_data, file_path):
+    try:
+        # Read existing data from CSV file (if it exists)
+        existing_df = pd.read_csv(file_path)
+    except FileNotFoundError:
+        # If the file doesn't exist, create an empty DataFrame
+        existing_df = pd.DataFrame()
+    print(existing_df.head())
+    # Append new data to existing DataFrame
+    existing_df = pd.concat([existing_df, new_data], ignore_index=True)
+    # Save the updated DataFrame back to the CSV file
+    existing_df.to_csv(file_path, index=False, encoding='utf-8-sig')
 
-def gethotelId(sectionLink): # Link
-    driver = webdriver.Chrome()
-    driver.get(sectionLink)
-    scrollPage(driver)
-    pageNum = int((driver.find_element(By.CSS_SELECTOR, 'div[data-selenium="pagination"]').text).split()[3])
-    # Create empty DataFrame
-    elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
-    hotelId = [element.get_attribute("data-hotelid") for element in elements]
-    df = idData(driver, hotelId)
-    # For loop for second page -->
-    for _ in range(pageNum - 1):
-        # Loop until reaching the end of the page
-        scrollPage(driver)
-        time.sleep(5)
-        elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
-        hotelId = [element.get_attribute("data-hotelid") for element in elements]
-        df_new = idData(driver, hotelId)
-        df = pd.concat([df, df_new], ignore_index=True)
-        try:
-            button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]'))
-            )
-            button.click()
-        except Exception as e:
-            print(f"An error occurred: {e}")
-    return df
 
 
 def idData(driver: webdriver, hotelId: list):
@@ -142,3 +133,45 @@ def reviewInfomation(driver: webdriver):
         return df
     except:
         print('There are something missing...')
+        
+        
+        
+def hotelId(sectionNames,sectionLinks): # Link
+        for sectionName,sectionLink in zip(sectionNames,sectionLinks):
+            driver = webdriver.Chrome(options=chrome_options)
+            driver.get(sectionLink)
+            time.sleep(5)
+            
+            if not os.path.exists("hotelData"):
+                os.makedirs("hotelData")
+        
+            scrollPage(driver)
+            pageNum = int((driver.find_element(By.CSS_SELECTOR, 'div[data-selenium="pagination"]').text).split()[3])
+            # Create empty DataFrame
+            elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
+            hotelId = [element.get_attribute("data-hotelid") for element in elements]
+            df = idData(driver, hotelId)
+            file_path = f"hotelData/{sectionName}.csv"
+            # Save the filtered DataFrame to a CSV file
+            df.to_csv(file_path, index=False, encoding='utf-8-sig')
+            
+            # For loop for second page -->
+            for _ in range(pageNum - 1):
+                try:
+                    time.sleep(5)
+                    # Loop until reaching the end of the page
+                    scrollPage(driver)
+                    elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
+                    hotelId = [element.get_attribute("data-hotelid") for element in elements]
+                    df_new = idData(driver, hotelId)
+                    appendCSV(df_new, file_path)
+                    
+                    # button = WebDriverWait(driver, 10).until(
+                    #     EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]'))
+                    # )
+                    time.sleep(2)
+                    button = driver.find_element(By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]')
+                    button.click()
+                except Exception as e:
+                    print("Break for loop",e)
+                    break
