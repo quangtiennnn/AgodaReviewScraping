@@ -1,7 +1,7 @@
 import pandas as pd
 import time
 import os
-
+import csv
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -27,18 +27,23 @@ class CrawlingData:
         self.citiesData = self.citiesData()
         self.sectionData = self.sectionData()
         self.edited_sectionData = self.edited_sectionData()
-        # for sectionName,sectionLink in zip(self.edited_sectionData.sectionName,self.edited_sectionData.edited_sectionLink):
-        #     hotelId(sectionName,sectionLink)
-        #     gethotelInfos(sectionName)
-        print(self.edited_sectionData.sectionName[21],self.edited_sectionData.edited_sectionLink[21])
-        hotelId(self.edited_sectionData.sectionName[21],self.edited_sectionData.edited_sectionLink[21])
-        gethotelInfos(self.edited_sectionData.sectionName[21]) 
-        hotelReviews()
+        for sectionName,sectionLink in zip(self.edited_sectionData.sectionName,self.edited_sectionData.edited_sectionLink):
+            hotelId(sectionName,sectionLink)
+            # gethotelInfos(sectionName)
+        # print(self.edited_sectionData.sectionName[21],self.edited_sectionData.edited_sectionLink[21])
+        # hotelId(self.edited_sectionData.sectionName[21],self.edited_sectionData.edited_sectionLink[21])
+        # gethotelInfos(self.edited_sectionData.sectionName[21]) 
+        # All hotel reviews
+        # sectionNames = [self.edited_sectionData.sectionName[21]]
+        # folder_path = "hotelData"
+        # files = os.listdir(folder_path)
+        # sectionNames = [sectionName.split('.')[0] for sectionName in files]
+        # hotelReviews(sectionNames)
 
 
     def citiesData(self):
         try:
-            df = pd.read_csv('citiesData.csv')
+            df = pd.read_csv('dataset/citiesData.csv')
             return df
         except FileNotFoundError:
             driver = webdriver.Chrome(options=chrome_options)
@@ -57,7 +62,7 @@ class CrawlingData:
 
     def sectionData(self):
         try:
-            df = pd.read_csv('sectionData.csv')
+            df = pd.read_csv('dataset/sectionData.csv')
             return df
         except FileNotFoundError:
             driver = webdriver.Chrome(options=chrome_options)
@@ -82,7 +87,7 @@ class CrawlingData:
 
     def edited_sectionData(self):
         try:
-            sample_df = pd.read_csv('edited_sectionData.csv')
+            sample_df = pd.read_csv('dataset/edited_sectionData.csv')
         except FileNotFoundError:
             sample_df = self.sectionData
             sample_df['edited_sectionLink'] = ''
@@ -140,19 +145,60 @@ def getsectionLink(link):
     return current_url
 
 
-def appendCSV(new_data, file_path):
-    try:
-        # Read existing data from CSV file (if it exists)
-        existing_df = pd.read_csv(file_path)
-    except FileNotFoundError:
-        # If the file doesn't exist, create an empty DataFrame
-        existing_df = pd.DataFrame()
-    print(existing_df.head())
-    # Append new data to existing DataFrame
-    existing_df = pd.concat([existing_df, new_data], ignore_index=True)
-    # Save the updated DataFrame back to the CSV file
-    existing_df.to_csv(file_path, index=False, encoding='utf-8-sig')
+# def appendCSV(new_data, file_path):
+#     try:
+#         # Read existing data from CSV file (if it exists)
+#         existing_df = pd.read_csv(file_path)
+#     except FileNotFoundError:
+#         # If the file doesn't exist, create an empty DataFrame
+#         existing_df = pd.DataFrame()
+#     print(existing_df.head())
+#     # Append new data to existing DataFrame
+#     existing_df = pd.concat([existing_df, new_data], ignore_index=True)
+#     # Save the updated DataFrame back to the CSV file
+#     existing_df.to_csv(file_path, index=False, encoding='utf-8-sig')
 
+
+def appendCSV(data: dict, filepath:str, first = False):
+    if len(filepath.split('/')) > 1:
+        directory = '/'.join(filepath.split('/')[:-1])
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    try:
+        if first == False:
+            with open(filepath, mode='a', newline='',encoding='utf-8-sig') as file:
+                writer = csv.DictWriter(file, fieldnames=data.keys())
+                
+                # Write the header (fieldnames)
+        #         writer.writeheader()
+
+                # Determine the number of rows (length of any list in the dictionary)
+                num_rows = len(next(iter(data.values())))
+                
+                # Write each row of data
+                for i in range(num_rows):
+                    row = {key: data[key][i] for key in data.keys()}
+                    writer.writerow(row)
+        else:
+
+
+            with open(filepath, mode='w', newline='',encoding='utf-8-sig') as file:
+                writer = csv.DictWriter(file, fieldnames=data.keys())
+                
+                # Write the header (fieldnames)
+                writer.writeheader()
+
+                # Determine the number of rows (length of any list in the dictionary)
+                num_rows = len(next(iter(data.values())))
+                
+                # Write each row of data
+                for i in range(num_rows):
+                    row = {key: data[key][i] for key in data.keys()}
+                    writer.writerow(row)
+    except AttributeError:
+        with open(filepath, mode='w', newline='') as file:
+            pass
+            
 
 def idData(driver: webdriver, hotelId: list):
     hotelLink = []
@@ -163,8 +209,8 @@ def idData(driver: webdriver, hotelId: list):
         'hotelId': hotelId,
         'hotelLink': hotelLink
     }
-    df = pd.DataFrame(data)
-    return df
+    # df = pd.DataFrame(data)
+    return data
         
              
 def hotelId(sectionName,sectionLink): # Link
@@ -180,11 +226,11 @@ def hotelId(sectionName,sectionLink): # Link
     # Create empty DataFrame
     elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
     hotelId = [element.get_attribute("data-hotelid") for element in elements]
-    df = idData(driver, hotelId)
+    data = idData(driver, hotelId)
     file_path = f"hotelData/{sectionName}.csv"
     # Save the filtered DataFrame to a CSV file
-    df.to_csv(file_path, index=False, encoding='utf-8-sig')
-    
+    appendCSV(data,file_path,first = True)
+        
     # For loop for second page -->
     for _ in range(pageNum - 1):
         try:
@@ -193,9 +239,8 @@ def hotelId(sectionName,sectionLink): # Link
             scrollPage(driver)
             elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
             hotelId = [element.get_attribute("data-hotelid") for element in elements]
-            df_new = idData(driver, hotelId)
-            appendCSV(df_new, file_path)
-            
+            data = idData(driver, hotelId)
+            appendCSV(data, file_path)            
             # button = WebDriverWait(driver, 10).until(
             #     EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]'))
             # )
@@ -204,6 +249,7 @@ def hotelId(sectionName,sectionLink): # Link
             button = driver.find_element(By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]')
             button.click()
         except Exception as e:
+            print('Done',sectionName)
             print("Break for loop",e)
             break
 
@@ -229,8 +275,8 @@ def reviewInfomation(driver: webdriver):
         group = [groupName.text for groupName in groupsName]
 
         # RoomTypes
-        roomsType = driver.find_elements(By.CSS_SELECTOR, 'div[data-info-type="room-type"]')
-        room = [roomType.text for roomType in roomsType]
+        # roomsType = driver.find_elements(By.CSS_SELECTOR, 'div[data-info-type="room-type"]')
+        # room = [roomType.text for roomType in roomsType]
 
         # StaysDetail
         staysDetail = driver.find_elements(By.CSS_SELECTOR, 'div[data-info-type="stay-detail"]')
@@ -253,24 +299,19 @@ def reviewInfomation(driver: webdriver):
             'reviewerName': reviewerName,
             'national': national,
             'groupName': group,
-            'roomType': room,
+            # 'roomType': room,
             'reviewTitle': reviewtitle,
             'comment':comment,
             'score': score
         }
-        df = pd.DataFrame(data)
-        return df
+        # df = pd.DataFrame(data)
+        return data
     except:
         pass
+
     
 
-def hotelReviews():
-    folder_path = "hotelData"
-    # Get a list of all files in the folder
-    files = os.listdir(folder_path)
-    
-    # Iterate over the list of files and print each file name
-    sectionNames = [sectionName.split('.')[0] for sectionName in files]
+def hotelReviews(sectionNames):
     for sectionName in sectionNames:
         section_df = pd.read_csv(f"hotelData/{sectionName}.csv")
         for hotelId,hotelLink in zip(section_df.hotelId,section_df.hotelLink):
@@ -280,8 +321,8 @@ def hotelReviews():
                 driver = webdriver.Chrome()
                 driver.get(hotelLink)
                 while True:
-                    df = reviewInfomation(driver)
-                    appendCSV(df,file_path)
+                    data = reviewInfomation(driver)
+                    appendCSV(data,file_path)
                     try:
                         button = driver.find_element(By.CSS_SELECTOR, 'i.ficon.ficon-24.ficon-carrouselarrow-right' )
                         # Move it to button element to able to click

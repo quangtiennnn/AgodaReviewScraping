@@ -137,41 +137,41 @@ def reviewInfomation(driver: webdriver):
         
         
 def hotelId(sectionNames,sectionLinks): # Link
-        for sectionName,sectionLink in zip(sectionNames,sectionLinks):
-            driver = webdriver.Chrome(options=chrome_options)
-            driver.get(sectionLink)
-            time.sleep(5)
-            
-            if not os.path.exists("hotelData"):
-                os.makedirs("hotelData")
+    for sectionName,sectionLink in zip(sectionNames,sectionLinks):
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get(sectionLink)
+        time.sleep(5)
         
-            scrollPage(driver)
-            pageNum = int((driver.find_element(By.CSS_SELECTOR, 'div[data-selenium="pagination"]').text).split()[3])
-            # Create empty DataFrame
-            elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
-            hotelId = [element.get_attribute("data-hotelid") for element in elements]
-            df = idData(driver, hotelId)
-            file_path = f"hotelData/{sectionName}.csv"
-            # Save the filtered DataFrame to a CSV file
-            df.to_csv(file_path, index=False, encoding='utf-8-sig')
-            
-            # For loop for second page -->
-            for _ in range(pageNum - 1):
-                try:
-                    time.sleep(5)
-                    # Loop until reaching the end of the page
-                    scrollPage(driver)
-                    elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
-                    hotelId = [element.get_attribute("data-hotelid") for element in elements]
-                    df_new = idData(driver, hotelId)
-                    appendCSV(df_new, file_path)
-                    
-                    # button = WebDriverWait(driver, 10).until(
-                    #     EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]'))
-                    # )
-                    time.sleep(2)
-                    button = driver.find_element(By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]')
-                    button.click()
-                except Exception as e:
-                    print("Break for loop",e)
-                    break
+        if not os.path.exists("hotelData"):
+            os.makedirs("hotelData")
+    
+        scrollPage(driver)
+        pageNum = int((driver.find_element(By.CSS_SELECTOR, 'div[data-selenium="pagination"]').text).split()[3])
+        # Create empty DataFrame
+        elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
+        hotelId = [element.get_attribute("data-hotelid") for element in elements]
+        df = idData(driver, hotelId)
+        file_path = f"hotelData/{sectionName}.csv"
+        # Save the filtered DataFrame to a CSV file
+        df.to_csv(file_path, index=False, encoding='utf-8-sig')
+        
+        # For loop for second page -->
+        for _ in range(pageNum - 1):
+            try:
+                time.sleep(5)
+                # Loop until reaching the end of the page
+                scrollPage(driver)
+                elements = driver.find_elements(By.CSS_SELECTOR, 'li[data-selenium="hotel-item"]')
+                hotelId = [element.get_attribute("data-hotelid") for element in elements]
+                df_new = idData(driver, hotelId)
+                appendCSV(df_new, file_path)
+                
+                # button = WebDriverWait(driver, 10).until(
+                #     EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]'))
+                # )
+                time.sleep(2)
+                button = driver.find_element(By.CSS_SELECTOR, 'button[data-selenium="pagination-next-btn"]')
+                button.click()
+            except Exception as e:
+                print("Break for loop",e)
+                break
